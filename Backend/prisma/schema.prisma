@@ -4,7 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -73,6 +73,8 @@ model User {
   avatarUrl   String? @map("avatar_url")
   githubUrl   String? @map("github_url")
   linkedinUrl String? @map("linkedin_url")
+  bio         String?
+
 
   role UserRole @default(participant)
 
@@ -134,9 +136,13 @@ model Event {
   tags String[]
 
   isPublic Boolean @default(true) @map("is_public")
+  isLeaderboardPublished Boolean @default(false) @map("is_leaderboard_published")
+
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
 
   organizer User @relation("EventOrganizer", fields: [organizerId], references: [id])
 
@@ -173,7 +179,7 @@ model Team {
 
   members       TeamMember[]
   registrations Registration[]
-  project       Project?
+  projects      Project[]
 
   @@unique([eventId, name])
   @@map("teams")
@@ -233,7 +239,7 @@ model Project {
   id String @id @default(uuid())
 
   eventId String @map("event_id")
-  teamId  String @unique @map("team_id")
+  teamId  String @map("team_id")
 
   title String
 
@@ -290,6 +296,8 @@ model Score {
   @@unique([projectId, judgeId])
   @@map("scores")
 }
+
+// event judge 
 
 model EventJudge {
   id String @id @default(uuid())

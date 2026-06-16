@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+
+    container_name: beetlex_postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vaibhav786
+      POSTGRES_DB: beetlex_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+
+    container_name: beetlex_api
+
+    depends_on:
+      - postgres
+
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: "postgresql://postgres:vaibhav786@postgres:5432/beetlex_db"
+
+      JWT_ACCESS_SECRET: "awt4esyrtduyfiugihoj"
+
+      JWT_REFRESH_SECRET: "2a46s547dr6tcvyiubin"
+
+      PORT: "3000"
+
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
