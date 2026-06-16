@@ -53,7 +53,16 @@ export const updateProject = async (userId: string, teamId: string, data: any) =
     throw new AppError("Description exceeds 2000 characters", 400, "VALIDATION_ERROR");
   }
 
-  return projectRepository.updateProject(project.id, data);
+  const sanitizedData: any = {};
+  if (data.title !== undefined) sanitizedData.title = data.title;
+  if (data.description !== undefined) sanitizedData.description = data.description;
+  if (data.techStack !== undefined) sanitizedData.techStack = data.techStack;
+  if (data.demoUrl !== undefined) sanitizedData.demoUrl = data.demoUrl;
+  if (data.repoUrl !== undefined) sanitizedData.repoUrl = data.repoUrl;
+  if (data.deckUrl !== undefined) sanitizedData.deckUrl = data.deckUrl;
+  if (data.videoUrl !== undefined) sanitizedData.videoUrl = data.videoUrl;
+
+  return projectRepository.updateProject(project.id, sanitizedData);
 };
 
 export const submitProject = async (userId: string, teamId: string) => {

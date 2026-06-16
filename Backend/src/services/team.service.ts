@@ -12,8 +12,7 @@ export const createTeam = async (userId: string, eventId: string, data: { name: 
 
   const inviteCode = crypto.randomBytes(5).toString('hex').toUpperCase();
 
-
-  return teamRepository.createTeam({
+  const team = await teamRepository.createTeam({
     name: data.name,
     track: data.track,
     inviteCode,
@@ -26,6 +25,9 @@ export const createTeam = async (userId: string, eventId: string, data: { name: 
       }
     }
   });
+
+  await registrationRepository.updateRegistrationTeam(userId, eventId, team.id);
+  return team;
 };
 
 export const joinTeam = async (userId: string, inviteCode: string) => {
@@ -52,7 +54,9 @@ export const joinTeam = async (userId: string, inviteCode: string) => {
     throw new AppError("You are already a member of this team", 409, "ALREADY_MEMBER");
   }
 
-  return teamRepository.addMember(team.id, userId, 'member');
+  const member = await teamRepository.addMember(team.id, userId, 'member');
+  await registrationRepository.updateRegistrationTeam(userId, team.eventId, team.id);
+  return member;
 };
 
 export const updateTeam = async (userId: string, teamId: string, data: any) => {
@@ -63,7 +67,12 @@ export const updateTeam = async (userId: string, teamId: string, data: any) => {
     throw new AppError("Only the team leader can update the team", 403, "FORBIDDEN");
   }
 
-  return teamRepository.updateTeam(teamId, data);
+  const sanitizedData: any = {};
+  if (data.name !== undefined) sanitizedData.name = data.name;
+  if (data.track !== undefined) sanitizedData.track = data.track;
+  if (data.isOpen !== undefined) sanitizedData.isOpen = data.isOpen;
+
+  return teamRepository.updateTeam(teamId, sanitizedData);
 };
 
 export const removeMember = async (leaderId: string, teamId: string, memberUserId: string) => {
@@ -78,7 +87,9 @@ export const removeMember = async (leaderId: string, teamId: string, memberUserI
     throw new AppError("Leader cannot remove themselves", 400, "CANNOT_REMOVE_LEADER");
   }
 
-  return teamRepository.removeMember(teamId, memberUserId);
+  const result = await teamRepository.removeMember(teamId, memberUserId);
+  await registrationRepository.updateRegistrationTeam(memberUserId, team.eventId, null);
+  return result;
 };
 
 export const deleteTeam = async (leaderId: string, teamId: string) => {
@@ -93,8 +104,12 @@ export const deleteTeam = async (leaderId: string, teamId: string) => {
     throw new AppError("Cannot delete team after submission deadline", 400, "DEADLINE_PASSED");
   }
 
+  const memberUserIds = team.members.map(m => m.userId);
+  await registrationRepository.clearRegistrationsTeam(memberUserIds, team.eventId);
+
   return teamRepository.deleteTeam(teamId);
 };
+
 
 export const getEventTeams = async (eventId: string, query: { page?: string, limit?: string }) => {
   const page = parseInt(query.page || "1");

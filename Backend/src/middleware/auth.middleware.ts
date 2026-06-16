@@ -28,4 +28,33 @@ export const authMiddleware = async (
 	}
 };
 
+export const optionalAuthMiddleware = async (
+	req: Request & { user?: any },
+	res: Response,
+	next: NextFunction
+) => {
+	const authHeader = req.headers.authorization;
+	if (!authHeader || !authHeader.startsWith("Bearer ")) {
+		req.user = { id: "", role: "public" };
+		return next();
+	}
+	const token = authHeader.split(" ")[1];
+	try {
+		const payload = verifyAccessToken(token);
+		const userId = payload.userId;
+		const user = await userRepository.findUserById(userId);
+		if (!user) {
+			req.user = { id: "", role: "public" };
+			return next();
+		}
+		const { passwordHash, ...userSafe } = user as any;
+		req.user = userSafe;
+		return next();
+	} catch (err) {
+		req.user = { id: "", role: "public" };
+		return next();
+	}
+};
+
 export default authMiddleware;
+

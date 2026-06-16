@@ -1,48 +1,28 @@
 import prisma from "../config/prisma";
 
 export const getLeaderboardData = async (eventId: string) => {
-  const projects = await prisma.project.findMany({
-    where: { 
-      eventId,
-      status: 'submitted'
-    },
-    include: {
-      team: {
-        select: { name: true }
-      },
-      scores: true
-    }
-  });
+  const result: any[] = await prisma.$queryRaw`
+    SELECT 
+      p.id AS "projectId",
+      p.title AS "projectTitle",
+      t.name AS "teamName",
+      COALESCE(AVG(s.total), 0) AS "averageScore",
+      p.submitted_at AS "submittedAt"
+    FROM projects p
+    JOIN teams t ON p.team_id = t.id
+    LEFT JOIN scores s ON p.id = s.project_id
+    WHERE p.event_id = ${eventId} AND p.status = 'submitted'
+    GROUP BY p.id, t.name
+    ORDER BY "averageScore" DESC, p.submitted_at ASC
+  `;
 
-  // Calculate averages and sort
-  const leaderboard = projects.map(project => {
-    const totalScoreSum = project.scores.reduce((acc, score) => acc + score.total, 0);
-    const averageScore = project.scores.length > 0 ? totalScoreSum / project.scores.length : 0;
-    
-    return {
-      projectId: project.id,
-      projectTitle: project.title,
-      teamName: project.team.name,
-      averageScore,
-      submittedAt: project.submittedAt
-    };
-  });
-
-  // Ranking logic: averageScore DESC, submittedAt ASC (tie breaking)
-  leaderboard.sort((a, b) => {
-    if (b.averageScore !== a.averageScore) {
-      return b.averageScore - a.averageScore;
-    }
-    // Tie break: earlier submission wins
-    const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : Infinity;
-    const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : Infinity;
-    return dateA - dateB;
-  });
-
-  // Add rank
-  return leaderboard.map((item, index) => ({
+  return result.map((item, index) => ({
     rank: index + 1,
-    ...item
+    projectId: item.projectId,
+    projectTitle: item.projectTitle,
+    teamName: item.teamName,
+    averageScore: Number(item.averageScore),
+    submittedAt: item.submittedAt
   }));
 };
 

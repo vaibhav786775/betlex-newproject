@@ -57,3 +57,30 @@ export const countRegistrationsByEventId = async (eventId: string) => {
   });
 };
 
+export const updateRegistrationTeam = async (userId: string, eventId: string, teamId: string | null) => {
+  return prisma.registration.update({
+    where: {
+      eventId_userId: {
+        eventId,
+        userId,
+      },
+    },
+    data: {
+      teamId,
+    },
+  });
+};
+
+export const clearRegistrationsTeam = async (userIds: string[], eventId: string) => {
+  return prisma.registration.updateMany({
+    where: {
+      eventId,
+      userId: { in: userIds },
+    },
+    data: {
+      teamId: null,
+    },
+  });
+};
+
+

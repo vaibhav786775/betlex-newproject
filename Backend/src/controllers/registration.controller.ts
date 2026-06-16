@@ -28,20 +28,28 @@ export const deleteRegistration = asyncHandler(async (req: any, res: Response) =
 });
 
 export const getRegistrations = asyncHandler(async (req: any, res: Response) => {
+  const isCsv = req.query.format === 'csv' || req.query.export === 'csv';
+  const query = isCsv ? { ...req.query, page: "1", limit: "999999" } : req.query;
+
   const registrations: any = await registrationService.getEventRegistrations(
     req.user.id,
     req.user.role,
     req.params.id,
-    req.query
+    query
   );
 
-  if (req.query.format === 'csv') {
+  if (isCsv) {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=registrations-${req.params.id}.csv`);
     
-    let csv = 'ID,User_ID,Status,Registered_At\n';
+    let csv = 'Registration ID,User ID,Full Name,Username,Email,Status,Registered At\n';
     registrations.results.forEach((r: any) => {
-      csv += `${r.id},${r.userId},${r.status},${r.registeredAt}\n`;
+      const u = r.user || {};
+      const fullName = (u.fullName || '').replace(/"/g, '""');
+      const email = u.email || '';
+      const username = u.username || '';
+      const regTime = r.registeredAt instanceof Date ? r.registeredAt.toISOString() : new Date(r.registeredAt).toISOString();
+      csv += `"${r.id}","${r.userId}","${fullName}","${username}","${email}","${r.status}","${regTime}"\n`;
     });
     
     return res.send(csv);

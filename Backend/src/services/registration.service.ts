@@ -1,40 +1,53 @@
 import * as registrationRepository from "../repositories/registration.repository";
 import * as eventRepository from "../repositories/event.repository";
 import { AppError } from "../utils/app-error";
+import prisma from "../config/prisma";
 
 export const registerForEvent = async (userId: string, eventId: string, data: any) => {
-  const event = await eventRepository.findEventById(eventId);
-  if (!event) {
-    throw new AppError("Event not found", 404, "EVENT_NOT_FOUND");
-  }
-
-  const existing = await registrationRepository.findRegistrationByUserIdAndEventId(userId, eventId);
-  if (existing) {
-    throw new AppError("Already registered for this event", 409, "ALREADY_REGISTERED");
-  }
-
-  const now = new Date();
-  if (now < new Date(event.registrationOpen)) {
-    throw new AppError("Registration has not opened yet", 400, "REGISTRATION_NOT_OPEN");
-  }
-  
-  if (now > new Date(event.registrationClose)) {
-    throw new AppError("Registration period has closed", 400, "REGISTRATION_CLOSED");
-  }
-
-  if (event.maxRegistrations !== null && event.maxRegistrations !== undefined) {
-    const currentCount = await registrationRepository.countRegistrationsByEventId(eventId);
-    if (currentCount >= event.maxRegistrations) {
-      throw new AppError("Event registration has reached maximum capacity", 409, "REGISTRATION_FULL");
+  return prisma.$transaction(async (tx) => {
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+    });
+    if (!event) {
+      throw new AppError("Event not found", 404, "EVENT_NOT_FOUND");
     }
-  }
 
-  return registrationRepository.createRegistration({
-    registrationData: data.registrationData || {},
-    status: 'confirmed',
-    event: { connect: { id: eventId } },
-    user: { connect: { id: userId } },
-    ...(data.teamId && { team: { connect: { id: data.teamId } } }),
+    const existing = await tx.registration.findUnique({
+      where: {
+        eventId_userId: { eventId, userId }
+      }
+    });
+    if (existing) {
+      throw new AppError("Already registered for this event", 409, "ALREADY_REGISTERED");
+    }
+
+    const now = new Date();
+    if (now < new Date(event.registrationOpen)) {
+      throw new AppError("Registration has not opened yet", 400, "REGISTRATION_NOT_OPEN");
+    }
+    
+    if (now > new Date(event.registrationClose)) {
+      throw new AppError("Registration period has closed", 400, "REGISTRATION_CLOSED");
+    }
+
+    if (event.maxRegistrations !== null && event.maxRegistrations !== undefined) {
+      const currentCount = await tx.registration.count({
+        where: { eventId },
+      });
+      if (currentCount >= event.maxRegistrations) {
+        throw new AppError("Event registration has reached maximum capacity", 409, "REGISTRATION_FULL");
+      }
+    }
+
+    return tx.registration.create({
+      data: {
+        registrationData: data.registrationData || {},
+        status: 'confirmed',
+        event: { connect: { id: eventId } },
+        user: { connect: { id: userId } },
+        ...(data.teamId && { team: { connect: { id: data.teamId } } }),
+      },
+    });
   });
 };
 

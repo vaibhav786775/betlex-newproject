@@ -97,6 +97,7 @@ model User {
 
   announcementsAuthored Announcement[]     @relation("AnnouncementAuthor")
   announcementReads     AnnouncementRead[]
+  refreshTokens         RefreshToken[]
 
   @@map("users")
 }
@@ -153,6 +154,7 @@ model Event {
 
   announcements Announcement[]
 
+  @@index([tags])
   @@map("events")
 }
 
@@ -367,3 +369,15 @@ model AnnouncementRead {
   @@id([announcementId, userId])
   @@map("announcement_reads")
 }
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { registerSchema } from "../validators/register.schema";
 import { loginSchema } from "../validators/login.schema";
+import { updateProfileSchema } from "../validators/update-profile.schema";
 import * as authService from "../services/auth.service";
 import { asyncHandler } from "../utils/async-handler";
 import { sendSuccess } from "../utils/api-response";
@@ -54,6 +55,9 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+  await authService.logout(refreshToken);
+
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -61,3 +65,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   });
   sendSuccess(res, null, "Logged out successfully", 200);
 });
+
+export const updateProfile = asyncHandler(async (req: any, res: Response) => {
+  const userId = req.user!.id;
+  const body = updateProfileSchema.parse(req.body);
+  const user = await authService.updateProfile(userId, body);
+  sendSuccess(res, user, "Profile updated successfully", 200);
+});
+

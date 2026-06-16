@@ -587,11 +587,13 @@ function App() {
   // Leaderboard Operations
   const fetchLeaderboard = async () => {
     if (!selectedEvent) return;
-    const result = await sendRequest<any[]>("GET", `/events/${selectedEvent.id}/leaderboard`);
+    const result = await sendRequest<any>("GET", `/events/${selectedEvent.id}/leaderboard`);
     if (result?.success && result.data) {
-      setLeaderboard(result.data);
+      setLeaderboard(result.data?.results || []);
     }
   };
+
+
 
   // Judge Operations
   const fetchJudgeProjects = async () => {
@@ -734,13 +736,12 @@ function App() {
                 <button 
                   className={`nav-item ${activeTab === "organizer" ? "active" : ""}`}
                   onClick={() => setActiveTab("organizer")}
-                  disabled={!selectedEvent}
                 >
                   <Layers size={18} />
                   <span>Organizer Console</span>
-                  {!selectedEvent && <span className="locked">Select Event</span>}
                 </button>
               )}
+
             </>
           )}
 
@@ -1430,204 +1431,313 @@ function App() {
           )}
 
           {/* TAB 5: ORGANIZER CONSOLE */}
-          {activeTab === "organizer" && (user?.role === "organizer" || user?.role === "admin") && selectedEvent && (
-            <div className="grid-2-cols">
-              <div className="stats-column">
-                <div className="panel-card">
-                  <div className="panel-header">
-                    <BarChart className="header-icon" />
-                    <h2>Live Hackathon Stats</h2>
+          {activeTab === "organizer" && (user?.role === "organizer" || user?.role === "admin") && (
+            selectedEvent ? (
+              <div className="grid-2-cols">
+                <div className="stats-column">
+                  <div className="panel-card">
+                    <div className="panel-header">
+                      <BarChart className="header-icon" />
+                      <h2>Live Hackathon Stats</h2>
+                    </div>
+
+                    {organizerStats ? (
+                      <div className="stats-metrics-grid">
+                        <div className="metric-box">
+                          <strong>Registrations</strong>
+                          <p>{organizerStats.registrations ?? 0}</p>
+                        </div>
+                        <div className="metric-box">
+                          <strong>Teams Formed</strong>
+                          <p>{organizerStats.teams ?? 0}</p>
+                        </div>
+                        <div className="metric-box">
+                          <strong>Submissions</strong>
+                          <p>{organizerStats.submissions ?? 0}</p>
+                        </div>
+                        <div className="metric-box">
+                          <strong>Assigned Judges</strong>
+                          <p>{organizerStats.judges ?? 0}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="hint-text">No stats available.</p>
+                    )}
+
+                    {/* Public visibility toggle */}
+                    <div className="event-settings-box border-t mt-6 pt-4">
+                      <h3>Visibility settings</h3>
+                      <div className="toggle-row">
+                        <span>Public leaderboard visibility:</span>
+                        <button 
+                          className={`btn-toggle ${selectedEvent.isPublic ? "toggle-active" : ""}`}
+                          onClick={() => handleToggleEventPublic(selectedEvent.id, !selectedEvent.isPublic)}
+                        >
+                          {selectedEvent.isPublic ? "Public" : "Private (Draft)"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {organizerStats ? (
-                    <div className="stats-metrics-grid">
-                      <div className="metric-box">
-                        <strong>Registrations</strong>
-                        <p>{organizerStats.registrations ?? 0}</p>
-                      </div>
-                      <div className="metric-box">
-                        <strong>Teams Formed</strong>
-                        <p>{organizerStats.teams ?? 0}</p>
-                      </div>
-                      <div className="metric-box">
-                        <strong>Submissions</strong>
-                        <p>{organizerStats.submissions ?? 0}</p>
-                      </div>
-                      <div className="metric-box">
-                        <strong>Assigned Judges</strong>
-                        <p>{organizerStats.judges ?? 0}</p>
-                      </div>
+                  {/* Event Creation Form */}
+                  <div className="panel-card mt-6">
+                    <div className="panel-header">
+                      <Plus className="header-icon" />
+                      <h2>Host a New Event</h2>
                     </div>
-                  ) : (
-                    <p className="hint-text">No stats available.</p>
-                  )}
 
-                  {/* Public visibility toggle */}
-                  <div className="event-settings-box border-t mt-6 pt-4">
-                    <h3>Visibility settings</h3>
-                    <div className="toggle-row">
-                      <span>Public leaderboard visibility:</span>
-                      <button 
-                        className={`btn-toggle ${selectedEvent.isPublic ? "toggle-active" : ""}`}
-                        onClick={() => handleToggleEventPublic(selectedEvent.id, !selectedEvent.isPublic)}
-                      >
-                        {selectedEvent.isPublic ? "Public" : "Private (Draft)"}
-                      </button>
-                    </div>
+                    <form onSubmit={handleCreateEvent} className="form-stack">
+                      <div className="form-group">
+                        <label>Title</label>
+                        <input 
+                          type="text" required placeholder="e.g. BuildIRL Hackathon"
+                          value={createEventForm.title}
+                          onChange={e => setCreateEventForm({ ...createEventForm, title: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Slug (URL Identifier)</label>
+                        <input 
+                          type="text" required placeholder="e.g. buildirl-2026"
+                          value={createEventForm.slug}
+                          onChange={e => setCreateEventForm({ ...createEventForm, slug: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Description</label>
+                        <textarea 
+                          rows={3} required placeholder="Description of the event..."
+                          value={createEventForm.description}
+                          onChange={e => setCreateEventForm({ ...createEventForm, description: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid-2-cols gap-4">
+                        <div className="form-group">
+                          <label>Registration Open</label>
+                          <input 
+                            type="datetime-local" required
+                            value={createEventForm.registrationOpen}
+                            onChange={e => setCreateEventForm({ ...createEventForm, registrationOpen: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Registration Close</label>
+                          <input 
+                            type="datetime-local" required
+                            value={createEventForm.registrationClose}
+                            onChange={e => setCreateEventForm({ ...createEventForm, registrationClose: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid-2-cols gap-4">
+                        <div className="form-group">
+                          <label>Event Start</label>
+                          <input 
+                            type="datetime-local" required
+                            value={createEventForm.eventStart}
+                            onChange={e => setCreateEventForm({ ...createEventForm, eventStart: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Event End</label>
+                          <input 
+                            type="datetime-local" required
+                            value={createEventForm.eventEnd}
+                            onChange={e => setCreateEventForm({ ...createEventForm, eventEnd: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Submission Deadline</label>
+                        <input 
+                          type="datetime-local" required
+                          value={createEventForm.submissionDeadline}
+                          onChange={e => setCreateEventForm({ ...createEventForm, submissionDeadline: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid-2-cols gap-4">
+                        <div className="form-group">
+                          <label>Min Team Size</label>
+                          <input 
+                            type="number" required min={1}
+                            value={createEventForm.minTeamSize}
+                            onChange={e => setCreateEventForm({ ...createEventForm, minTeamSize: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Max Team Size</label>
+                          <input 
+                            type="number" required min={1}
+                            value={createEventForm.maxTeamSize}
+                            onChange={e => setCreateEventForm({ ...createEventForm, maxTeamSize: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Tags (Comma separated)</label>
+                        <input 
+                          type="text" placeholder="web, mobile, ai"
+                          value={createEventForm.tags}
+                          onChange={e => setCreateEventForm({ ...createEventForm, tags: e.target.value })}
+                        />
+                      </div>
+                      <button type="submit" className="btn-primary w-full">Publish Hackathon Event</button>
+                    </form>
                   </div>
                 </div>
 
-                {/* Event Creation Form */}
-                <div className="panel-card mt-6">
-                  <div className="panel-header">
-                    <Plus className="header-icon" />
-                    <h2>Host a New Event</h2>
-                  </div>
+                {/* Scores List */}
+                <div className="scores-column">
+                  <div className="panel-card">
+                    <div className="panel-header">
+                      <Award className="header-icon" />
+                      <h2>Judge Evaluation Matrices</h2>
+                    </div>
 
-                  <form onSubmit={handleCreateEvent} className="form-stack">
-                    <div className="form-group">
-                      <label>Title</label>
-                      <input 
-                        type="text" required placeholder="e.g. BuildIRL Hackathon"
-                        value={createEventForm.title}
-                        onChange={e => setCreateEventForm({ ...createEventForm, title: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Slug (URL Identifier)</label>
-                      <input 
-                        type="text" required placeholder="e.g. buildirl-2026"
-                        value={createEventForm.slug}
-                        onChange={e => setCreateEventForm({ ...createEventForm, slug: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Description</label>
-                      <textarea 
-                        rows={3} required placeholder="Description of the event..."
-                        value={createEventForm.description}
-                        onChange={e => setCreateEventForm({ ...createEventForm, description: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid-2-cols gap-4">
-                      <div className="form-group">
-                        <label>Registration Open</label>
-                        <input 
-                          type="datetime-local" required
-                          value={createEventForm.registrationOpen}
-                          onChange={e => setCreateEventForm({ ...createEventForm, registrationOpen: e.target.value })}
-                        />
+                    {eventScores.length === 0 ? (
+                      <div className="empty-state">
+                        <p>No evaluation scores have been submitted yet.</p>
                       </div>
-                      <div className="form-group">
-                        <label>Registration Close</label>
-                        <input 
-                          type="datetime-local" required
-                          value={createEventForm.registrationClose}
-                          onChange={e => setCreateEventForm({ ...createEventForm, registrationClose: e.target.value })}
-                        />
+                    ) : (
+                      <div className="scores-table-container">
+                        <table className="eval-table">
+                          <thead>
+                            <tr>
+                              <th>Project</th>
+                              <th>Innov</th>
+                              <th>Tech</th>
+                              <th>Imp</th>
+                              <th>Pres</th>
+                              <th>Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {eventScores.map((score, idx) => (
+                              <tr key={score.id ?? idx}>
+                                <td><strong>{score.project?.title}</strong></td>
+                                <td>{score.innovation}</td>
+                                <td>{score.technical}</td>
+                                <td>{score.impact}</td>
+                                <td>{score.presentation}</td>
+                                <td className="text-blue-500 font-bold">{score.total.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    </div>
-                    <div className="grid-2-cols gap-4">
-                      <div className="form-group">
-                        <label>Event Start</label>
-                        <input 
-                          type="datetime-local" required
-                          value={createEventForm.eventStart}
-                          onChange={e => setCreateEventForm({ ...createEventForm, eventStart: e.target.value })}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Event End</label>
-                        <input 
-                          type="datetime-local" required
-                          value={createEventForm.eventEnd}
-                          onChange={e => setCreateEventForm({ ...createEventForm, eventEnd: e.target.value })}
-                        />
-                      </div>
-                    </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="panel-card w-full max-w-lg mx-auto">
+                <div className="panel-header">
+                  <Plus className="header-icon" />
+                  <h2>Host a New Event</h2>
+                </div>
+                <p className="hint-text mb-4">No event selected. Fill out the form below to create your first hackathon event!</p>
+
+                <form onSubmit={handleCreateEvent} className="form-stack">
+                  <div className="form-group">
+                    <label>Title</label>
+                    <input 
+                      type="text" required placeholder="e.g. BuildIRL Hackathon"
+                      value={createEventForm.title}
+                      onChange={e => setCreateEventForm({ ...createEventForm, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Slug (URL Identifier)</label>
+                    <input 
+                      type="text" required placeholder="e.g. buildirl-2026"
+                      value={createEventForm.slug}
+                      onChange={e => setCreateEventForm({ ...createEventForm, slug: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Description</label>
+                    <textarea 
+                      rows={3} required placeholder="Description of the event..."
+                      value={createEventForm.description}
+                      onChange={e => setCreateEventForm({ ...createEventForm, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid-2-cols gap-4">
                     <div className="form-group">
-                      <label>Submission Deadline</label>
+                      <label>Registration Open</label>
                       <input 
                         type="datetime-local" required
-                        value={createEventForm.submissionDeadline}
-                        onChange={e => setCreateEventForm({ ...createEventForm, submissionDeadline: e.target.value })}
+                        value={createEventForm.registrationOpen}
+                        onChange={e => setCreateEventForm({ ...createEventForm, registrationOpen: e.target.value })}
                       />
-                    </div>
-                    <div className="grid-2-cols gap-4">
-                      <div className="form-group">
-                        <label>Min Team Size</label>
-                        <input 
-                          type="number" required min={1}
-                          value={createEventForm.minTeamSize}
-                          onChange={e => setCreateEventForm({ ...createEventForm, minTeamSize: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Max Team Size</label>
-                        <input 
-                          type="number" required min={1}
-                          value={createEventForm.maxTeamSize}
-                          onChange={e => setCreateEventForm({ ...createEventForm, maxTeamSize: Number(e.target.value) })}
-                        />
-                      </div>
                     </div>
                     <div className="form-group">
-                      <label>Tags (Comma separated)</label>
+                      <label>Registration Close</label>
                       <input 
-                        type="text" placeholder="web, mobile, ai"
-                        value={createEventForm.tags}
-                        onChange={e => setCreateEventForm({ ...createEventForm, tags: e.target.value })}
+                        type="datetime-local" required
+                        value={createEventForm.registrationClose}
+                        onChange={e => setCreateEventForm({ ...createEventForm, registrationClose: e.target.value })}
                       />
                     </div>
-                    <button type="submit" className="btn-primary w-full">Publish Hackathon Event</button>
-                  </form>
-                </div>
-              </div>
-
-              {/* Scores List */}
-              <div className="scores-column">
-                <div className="panel-card">
-                  <div className="panel-header">
-                    <Award className="header-icon" />
-                    <h2>Judge Evaluation Matrices</h2>
                   </div>
-
-                  {eventScores.length === 0 ? (
-                    <div className="empty-state">
-                      <p>No evaluation scores have been submitted yet.</p>
+                  <div className="grid-2-cols gap-4">
+                    <div className="form-group">
+                      <label>Event Start</label>
+                      <input 
+                        type="datetime-local" required
+                        value={createEventForm.eventStart}
+                        onChange={e => setCreateEventForm({ ...createEventForm, eventStart: e.target.value })}
+                      />
                     </div>
-                  ) : (
-                    <div className="scores-table-container">
-                      <table className="eval-table">
-                        <thead>
-                          <tr>
-                            <th>Project</th>
-                            <th>Innov</th>
-                            <th>Tech</th>
-                            <th>Imp</th>
-                            <th>Pres</th>
-                            <th>Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {eventScores.map((score, idx) => (
-                            <tr key={score.id ?? idx}>
-                              <td><strong>{score.project?.title}</strong></td>
-                              <td>{score.innovation}</td>
-                              <td>{score.technical}</td>
-                              <td>{score.impact}</td>
-                              <td>{score.presentation}</td>
-                              <td className="text-blue-500 font-bold">{score.total.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="form-group">
+                      <label>Event End</label>
+                      <input 
+                        type="datetime-local" required
+                        value={createEventForm.eventEnd}
+                        onChange={e => setCreateEventForm({ ...createEventForm, eventEnd: e.target.value })}
+                      />
                     </div>
-                  )}
-                </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Submission Deadline</label>
+                    <input 
+                      type="datetime-local" required
+                      value={createEventForm.submissionDeadline}
+                      onChange={e => setCreateEventForm({ ...createEventForm, submissionDeadline: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid-2-cols gap-4">
+                    <div className="form-group">
+                      <label>Min Team Size</label>
+                      <input 
+                        type="number" required min={1}
+                        value={createEventForm.minTeamSize}
+                        onChange={e => setCreateEventForm({ ...createEventForm, minTeamSize: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Max Team Size</label>
+                      <input 
+                        type="number" required min={1}
+                        value={createEventForm.maxTeamSize}
+                        onChange={e => setCreateEventForm({ ...createEventForm, maxTeamSize: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Tags (Comma separated)</label>
+                    <input 
+                      type="text" placeholder="web, mobile, ai"
+                      value={createEventForm.tags}
+                      onChange={e => setCreateEventForm({ ...createEventForm, tags: e.target.value })}
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary w-full">Publish Hackathon Event</button>
+                </form>
               </div>
-            </div>
+            )
           )}
+
 
           {/* TAB 6: LEADERBOARD */}
           {activeTab === "leaderboard" && selectedEvent && (

@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { requestLogger } from "./middleware/logger.middleware";
 import { errorHandler } from "./middleware/error.middleware";
+import { apiLimiter } from "./middleware/rate-limit.middleware";
 import authRouter from "./routes/auth.routes";
 import eventRouter from "./routes/event.routes";
 import teamRouter from "./routes/team.routes";
@@ -29,6 +30,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
+app.use("/api", apiLimiter);
 
 
 app.get("/", (req, res) => {
