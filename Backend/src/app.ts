@@ -1,9 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { requestLogger } from "./middleware/logger.middleware";
 import { errorHandler } from "./middleware/error.middleware";
 import { apiLimiter } from "./middleware/rate-limit.middleware";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.config";
 import authRouter from "./routes/auth.routes";
 import eventRouter from "./routes/event.routes";
 import teamRouter from "./routes/team.routes";
@@ -11,7 +15,6 @@ import projectRouter from "./routes/project.routes";
 import judgeRouter from "./routes/judge.routes";
 import leaderboardRouter from "./routes/leaderboard.routes";
 import announcementRouter from "./routes/announcement.routes";
-
 
 
 
@@ -31,6 +34,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
 app.use("/api", apiLimiter);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 app.get("/", (req, res) => {

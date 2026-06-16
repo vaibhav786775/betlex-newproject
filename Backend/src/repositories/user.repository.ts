@@ -43,6 +43,7 @@ export const updateUser = async (
     avatarUrl: string | null;
     githubUrl: string | null;
     linkedinUrl: string | null;
+    bio: string | null;
     role: "participant" | "judge" | "organizer" | "admin";
     isVerified: boolean;
     isActive: boolean;

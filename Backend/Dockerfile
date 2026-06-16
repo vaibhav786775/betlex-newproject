@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-ENV DATABASE_URL="postgresql://postgres:vaibhav786@localhost:5432/beetlex_db"
+ENV DATABASE_URL="postgresql://postgres:postgres@postgres:5432/beetlex_db?schema=public"
 
 RUN npx prisma generate
 

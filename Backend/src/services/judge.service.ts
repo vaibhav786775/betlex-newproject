@@ -1,5 +1,6 @@
 import * as judgeRepository from "../repositories/judge.repository";
 import { AppError } from "../utils/app-error";
+import { notifyScoreUpdate } from "./leaderboard.service";
 
 export const getAssignedProjects = async (judgeId: string) => {
   return judgeRepository.findAssignedProjects(judgeId);
@@ -37,7 +38,6 @@ export const submitScore = async (judgeId: string, projectId: string, data: any)
   // Notify live leaderboard
   const projectDetail = await judgeRepository.findProjectWithScore(projectId, judgeId);
   if (projectDetail) {
-    const { notifyScoreUpdate } = require("./leaderboard.service");
     notifyScoreUpdate(projectDetail.eventId);
   }
 
