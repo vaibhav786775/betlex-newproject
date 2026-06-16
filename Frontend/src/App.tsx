@@ -231,7 +231,7 @@ function App() {
     if (user?.role === "judge") {
       fetchJudgeProjects();
     }
-  }, [user]);
+  }, [user, activeTab]);
 
   const setToken = (token?: string) => {
     if (token) {

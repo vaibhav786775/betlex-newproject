@@ -59,7 +59,6 @@ enum AnnouncementTarget {
   organizers
 }
 
-// user model ->
 
 model User {
   id String @id @default(uuid())
@@ -102,7 +101,6 @@ model User {
   @@map("users")
 }
 
-// event model -
 
 model Event {
   id String @id @default(uuid())
@@ -187,7 +185,6 @@ model Team {
   @@map("teams")
 }
 
-// team member model 
 
 model TeamMember {
   teamId String @map("team_id")
@@ -205,7 +202,6 @@ model TeamMember {
   @@map("team_members")
 }
 
-// registration model 
 
 model Registration {
   id String @id @default(uuid())
@@ -235,7 +231,6 @@ model Registration {
   @@map("registrations")
 }
 
-// project model 
 
 model Project {
   id String @id @default(uuid())
@@ -271,7 +266,6 @@ model Project {
   @@map("projects")
 }
 
-// score model 
 
 model Score {
   id String @id @default(uuid())
@@ -299,7 +293,6 @@ model Score {
   @@map("scores")
 }
 
-// event judge 
 
 model EventJudge {
   id String @id @default(uuid())

@@ -19,6 +19,9 @@ export const findAssignedProjects = async (judgeId: string) => {
     include: {
       team: {
         select: { name: true }
+      },
+      scores: {
+        where: { judgeId }
       }
     }
   });

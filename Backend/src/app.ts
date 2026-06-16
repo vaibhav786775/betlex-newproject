@@ -28,7 +28,7 @@ const corsOptions = {
   credentials: true,
 };
 
-// Middleware
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
@@ -41,7 +41,6 @@ app.get("/", (req, res) => {
   res.send("BeetleX Backend Running");
 });
 
-// Routes
 app.use("/api/auth", authRouter);
 app.use("/api/events", eventRouter);
 app.use("/api/teams", teamRouter);
@@ -54,10 +53,6 @@ app.use("/api", announcementRouter);
 
 
 
-
-
-
-// Global error handler (must be last)
 app.use(errorHandler);
 
 export default app;
