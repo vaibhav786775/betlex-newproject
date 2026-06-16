@@ -94,7 +94,7 @@ Create a `.env` file in the root of the `Backend/` directory with the following 
 
 ```env
 PORT=3000
-DATABASE_URL="postgresql://postgres:vaibhav786@localhost:5432/beetlex_db?schema=public"
+DATABASE_URL="postgresql://postgres:**********@localhost:5432/beetlex_db?schema=public"
 JWT_ACCESS_SECRET="your_access_token_secret_string"
 JWT_REFRESH_SECRET="your_refresh_token_secret_string"
 FRONTEND_ORIGIN="http://localhost:5173"
